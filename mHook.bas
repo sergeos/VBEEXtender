@@ -97,6 +97,9 @@ Private Function KbdProc( _
                     
                     'MsgBox "Wait for subcommand"
 
+                '"operation duplicate line"
+                ElseIf lParam = 558891009 Then
+                    DuplicateSelectedBlock
                 End If
             
             Else
@@ -241,6 +244,44 @@ On Error GoTo Err:
     'Set selection to the new block position
     'IDE.ActiveCodePane.SetSelection lngStartLine, 1, lngEndLine, 999
     IDE.ActiveCodePane.SetSelection lngStartLine, lngStartColumn + sofsCol, lngEndLine, lngEndColumn + eofsCol
+    
+    Exit Sub
+Err:
+    Debug.Print "SmartCommentBlock Err: " & Err.Description
+End Sub
+
+
+'================================================
+'Duplicate selected lines in Block
+'================================================
+Private Sub DuplicateSelectedBlock()
+On Error GoTo Err:
+    Dim tLines$(), i&
+    Dim aux$
+    Dim eofsCol&, eofsLine&
+    Dim lngStartLine&, lngEndLine&, lngStartColumn&, lngEndColumn&
+
+    'Get cursor position
+    IDE.ActiveCodePane.GetSelection lngStartLine, lngStartColumn, lngEndLine, lngEndColumn
+    'Fix line not fully selected
+    If (lngEndColumn = 1) And (lngStartLine <> lngEndLine) Then lngEndLine = lngEndLine - 1
+    'Get all the lines
+    tLines$ = Split(IDE.ActiveCodePane.CodeModule.Lines(lngStartLine, (lngEndLine - lngStartLine) + 1), vbCrLf)
+
+    'Exit on empty lines
+    If (UBound(tLines$) < 0) Then Exit Sub
+    
+    For i = 0 To UBound(tLines$)
+        aux$ = aux$ & tLines$(i) & vbNewLine
+    Next
+    
+    If Len(Trim(aux$)) > 0 Then
+        aux$ = Left(aux$, Len(aux$) - 2)
+        eofsCol& = UBound(tLines$) + 1
+        'eofsLine& = lngEndLine + UBound(tLines$)
+        IDE.ActiveCodePane.CodeModule.InsertLines lngEndLine + 1, aux$
+        IDE.ActiveCodePane.SetSelection lngStartLine + eofsCol&, lngStartColumn, lngEndLine + eofsCol&, lngEndColumn
+    End If
     
     Exit Sub
 Err:
